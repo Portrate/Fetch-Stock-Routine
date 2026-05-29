@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+set_market.db-shm
+set_market.db-wal

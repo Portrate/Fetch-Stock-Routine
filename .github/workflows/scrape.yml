@@ -1,0 +1,40 @@
+name: SET Market Daily Scrape
+
+on:
+  schedule:
+    # Runs at 09:30 UTC = 16:30 Bangkok time (after SET market close)
+    - cron: "30 9 * * 1-5"   # Mon–Fri only
+  workflow_dispatch:          # Allow manual trigger from GitHub UI
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # Need full history so git commit works cleanly
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scraper (snapshot only — fast daily refresh)
+        run: python main.py --snapshot-only
+        env:
+          PYTHONIOENCODING: utf-8
+
+      - name: Commit updated database
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add set_market.db
+          git diff --cached --quiet || git commit -m "chore: daily SET market snapshot $(date -u +'%Y-%m-%d')"
+          git push
